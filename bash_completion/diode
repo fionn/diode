@@ -1,0 +1,41 @@
+_diode()
+{
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    reqs="send listen"
+    flags="--help -h --baudrate -b --device -d"
+    opts="$reqs $flags"
+
+    if [[ "$prev" == "send" ]]
+    then
+        _filedir
+        return 0
+    fi
+
+    if [[ "$prev" == "listen" ]]
+    then
+        mapfile -t COMPREPLY < <(compgen -W "$flags" -- "$cur")
+        return 0
+    fi
+
+    if [[ "$prev" == "--baudrate" ]] || [[ "$prev" == "-b" ]]
+    then
+        return 0
+    fi
+
+    if [[ "$prev" == "--device" ]] || [[ "$prev" == "-d" ]]
+    then
+        _filedir
+        return 0
+    fi
+
+    if [[ $cur == * ]]
+    then
+        mapfile -t COMPREPLY < <(compgen -W "$opts" -- "$cur")
+        return 0
+    fi
+}
+
+complete -F _diode diode
