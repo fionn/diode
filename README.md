@@ -43,6 +43,8 @@ Install in developer mode with `make install_dev && source venv/bin/activate`.
 
 Install as user with `make install`.
 
+Install [from PyPI](https://pypi.org/project/data-diode/) with `pip install data-diode`.
+
 Install Bash completion with `source bash_completion/diode`.
 
 ## Testing
