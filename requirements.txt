@@ -1,1 +1,1 @@
-pyserial==3.4 --hash=sha256:e0770fadba80c31013896c7e6ef703f72e7834965954a78e71a3049488d4d7d8
+pyserial == 3.5

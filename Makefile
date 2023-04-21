@@ -4,7 +4,7 @@ VENV = venv
 
 venv: requirements.txt
 	@python3 -m venv $@ --prompt $@::srl
-	@source $@/bin/activate && pip install --require-hashes -r $<
+	@source $@/bin/activate && pip install -r $<
 	@echo "enter virtual environment: source $@/bin/activate"
 
 .PHONY: setup_dev
@@ -21,6 +21,11 @@ install: requirements.txt $(SRC)
 	@pip install --user --require-hashes -r $<
 	@pip install --user --no-deps .
 
+.PHONY: build
+build: $(SRC)
+	@python -m build
+
+.PHONY: test
 test: $(SRC)
 	@source $(VENV)/bin/activate && cd $(SRC)/ && python3 -m unittest
 
