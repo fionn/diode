@@ -15,15 +15,15 @@ from diode.core import send, listen, WireFormat, ListenError, LOG
 
 LOG.disabled = True
 
-SerialProcess = NamedTuple("SerialProcess", [("process", subprocess.Popen),
-                                             ("devices", list)])
+SerialProcess = NamedTuple("SerialProcess", [("process", subprocess.Popen[str]),
+                                             ("devices", list[str])])
 
 class ExcThread(threading.Thread):
     """Thread child to catch exceptions and raise on join"""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.exception: BaseException = None # type: ignore
+        self.exception: BaseException = None
 
     def run(self) -> None:
         try:
@@ -39,7 +39,7 @@ class ExcThread(threading.Thread):
 class BaseTestSerialDevice(unittest.TestCase):
     """Base class to initialise serial device"""
 
-    socat: SerialProcess = None # type:ignore
+    socat: SerialProcess = None
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -53,7 +53,7 @@ class BaseTestSerialDevice(unittest.TestCase):
     def _create_serial_devices() -> SerialProcess:
         """Oh jeez this is pretty horrible"""
         cmd = ["socat", "-d", "-d", "pty,raw,echo=0", "pty,raw,echo=0"]
-        process = subprocess.Popen(cmd, stderr=subprocess.PIPE, text=True)
+        process = subprocess.Popen(cmd, stderr=subprocess.PIPE, text=True) # pylint: disable=consider-using-with
         ttys = []
         for line in iter(process.stderr.readline, ""):
             sys.stderr.flush()
@@ -83,14 +83,14 @@ class TestListen(BaseTestSerialDevice):
     """Tests for receiving data over the serial connection"""
 
     @staticmethod
-    def _queued_listener(que: queue.Queue, device: str) -> None:
+    def _queued_listener(que: queue.Queue[WireFormat], device: str) -> None:
         que.put(listen(device))
 
     def test_listen(self) -> None:
         """Receive WireFormat data"""
         wire_data = WireFormat("metadata", b"payload")
         with serial.Serial(self.socat.devices[1]) as listen_device:
-            que: queue.Queue = queue.Queue()
+            que: queue.Queue[WireFormat] = queue.Queue()
             listen_thread = threading.Thread(target=self._queued_listener,
                                              args=(que, listen_device))
             listen_thread.start()
