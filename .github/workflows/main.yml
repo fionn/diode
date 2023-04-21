@@ -79,4 +79,4 @@ jobs:
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@v1.8.5
       with:
-        print_hash: true
+        print-hash: true
