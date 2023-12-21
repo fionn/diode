@@ -43,15 +43,15 @@ jobs:
       run: python -m unittest -v --locals --buffer
       working-directory: diode
 
-  publish:
+  build:
 
-    name: Publish
+    name: build
     needs: [lint, test]
     runs-on: ubuntu-latest
-    environment: release
-    permissions:
-      id-token: write
     if: startsWith(github.ref, 'refs/tags')
+
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
 
     steps:
 
@@ -62,19 +62,68 @@ jobs:
       uses: ./.github/actions/setup
 
     - name: Install pypa/build
-      run: pip install build
+      run: pip install build==1.0.3
       env:
         PIP_PROGRESS_BAR: off
         PIP_DISABLE_PIP_VERSION_CHECK: 1
 
     - name: Build distribution
-      run: make build
+      run: SOURCE_DATE_EPOCH="$(git show -s --format=%at)" make build
+
+    - name: Generate hashes
+      id: hash
+      run: echo "hashes=$(sha256sum * | base64 -w0)" >> $GITHUB_OUTPUT
+      working-directory: dist/
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: diode
         path: dist/
+        if-no-files-found: error
+
+  provenance:
+
+    name: Provenance
+    needs: build
+    if: startsWith(github.ref, 'refs/tags')
+
+    permissions:
+      actions: read
+      contents: write
+      id-token: write
+
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.9.0
+    with:
+      provenance-name: diode.intoto.jsonl
+      base64-subjects: "${{ needs.build.outputs.hashes }}"
+      upload-assets: true
+
+  publish:
+
+    name: Publish
+    needs: [build, provenance]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags')
+
+    environment: release
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: diode
+        path: dist/
+
+    - name: Upload to release
+      run: gh release upload ${{ github.ref_name }} * --repo ${{ github.repository }}
+      working-directory: dist/
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@v1.8
